@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nihongo Slayer: Arcade Blood Edition</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@500;600;700&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        blood: {
+                            900: '#3a0007',
+                            800: '#5c000e',
+                            600: '#8b0000',
+                            500: '#c8001e',
+                            400: '#ff003c',
+                            300: '#ff3360',
+                            glow: '#ff003c88'
+                        },
+                        darkbg: {
+                            base: '#090305',
+                            card: '#14070c',
+                            border: '#2e0d18',
+                            light: '#1f0a13'
+                        },
+                        neon: {
+                            gold: '#ffd700',
+                            emerald: '#00ff66',
+                            cyan: '#00e5ff'
+                        }
+                    },
+                    fontFamily: {
+                        arcade: ['"Press Start 2P"', 'monospace'],
+                        title: ['Rajdhani', 'sans-serif'],
+                        japanese: ['"Noto Sans JP"', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #090305;
+            color: #f3f4f6;
+            font-family: 'Rajdhani', sans-serif;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        /* CRT Overlay Filter */
+        .crt-overlay::after {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 99;
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+        /* Blood Glow Effect */
+        .blood-glow {
+            box-shadow: 0 0 15px #ff003c66, inset 0 0 10px #ff003c33;
+        }
+
+        .blood-glow-lg {
+            box-shadow: 0 0 25px #ff003caa, 0 0 50px #8b000044;
+        }
+
+        .gold-glow {
+            box-shadow: 0 0 15px #ffd700aa;
+        }
+
+        .emerald-glow {
+            box-shadow: 0 0 20px #00ff66aa;
+        }
+
+        /* Blood Splash & Slash Animations */
+        @keyframes bloodSlashAnim {
+            0% { transform: scaleX(0) rotate(-15deg); opacity: 1; }
+            50% { transform: scaleX(1.2) rotate(-15deg); opacity: 1; }
+            100% { transform: scaleX(1) rotate(-15deg); opacity: 0; }
+        }
+
+        .blood-slash {
+            position: absolute;
+            top: 40%;
+            left: 5%;
+            width: 90%;
+            height: 12px;
+            background: linear-gradient(90deg, transparent, #ff003c, #ffffff, #ff003c, transparent);
+            box-shadow: 0 0 20px #ff003c, 0 0 40px #ff003c;
+            transform-origin: center;
+            pointer-events: none;
+            z-index: 60;
+            display: none;
+        }
+
+        .blood-slash.active {
+            display: block;
+            animation: bloodSlashAnim 0.35s ease-out forwards;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0); }
+            20% { transform: translate(-8px, 5px); }
+            40% { transform: translate(8px, -5px); }
+            60% { transform: translate(-5px, -3px); }
+            80% { transform: translate(5px, 3px); }
+        }
+
+        .shake-screen {
+            animation: shake 0.3s ease-in-out;
+        }
+
+        /* Floating XP animation */
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-60px) scale(1.3); }
+        }
+
+        .floating-xp {
+            position: absolute;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 1.25rem;
+            color: #ffd700;
+            text-shadow: 0 0 10px #ff003c;
+            pointer-events: none;
+            animation: floatUp 0.8s ease-out forwards;
+            z-index: 70;
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #090305;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #5c000e;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff003c;
+        }
+    </style>
+</head>
+<body class="crt-overlay min-h-screen flex flex-col justify-between selection:bg-blood-400 selection:text-white">
+
+    <!-- TOP HEADER / PROFILE BAR -->
+    <header class="border-b border-blood-800 bg-darkbg-card/90 backdrop-blur sticky top-0 z-40 px-4 py-3 shadow-lg">
+        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-3">
+            
+            <!-- Brand Logo -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('dashboard')">
+                <div class="w-10 h-10 rounded-lg bg-blood-600 border border-blood-400 flex items-center justify-center blood-glow">
+                    <i class="fa-solid fa-skull-crossbones text-xl text-white animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="font-arcade text-xs md:text-sm text-blood-400 tracking-wider">NIHONGO SLAYER</h1>
+                    <p class="text-xs text-amber-500 font-semibold tracking-widest flex items-center gap-1">
+                        ARCADE BLOOD EDITION <span class="text-[9px] bg-blood-900 px-1 py-0.5 rounded text-blood-400 border border-blood-600">v2.5</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Profile Overview (Visible when logged in) -->
+            <div id="headerProfileBar" class="hidden flex items-center gap-3 bg-darkbg-base px-3 py-1.5 rounded-xl border border-blood-900">
+                <div id="headerAvatar" class="text-2xl w-10 h-10 rounded-lg bg-blood-900/60 border border-blood-600 flex items-center justify-center shadow">
+                    🥷
+                </div>
+                <div class="flex flex-col">
+                    <div class="flex items-center gap-2">
+                        <span id="headerUsername" class="font-bold text-sm text-gray-100">Slayer</span>
+                        <span id="headerLevelBadge" class="bg-blood-600 text-white text-[10px] font-arcade px-1.5 py-0.5 rounded">LV.1</span>
+                    </div>
+                    <!-- Level XP Progress Bar -->
+                    <div class="w-32 bg-gray-800 h-2 rounded-full overflow-hidden mt-1 border border-blood-900">
+                        <div id="headerXpBar" class="bg-gradient-to-r from-blood-600 via-blood-400 to-amber-400 h-full w-[10%] transition-all duration-300"></div>
+                    </div>
+                </div>
+                
+                <div class="h-8 w-px bg-blood-900 mx-1 hidden sm:block"></div>
+
+                <div class="hidden sm:flex gap-3 text-xs">
+                    <div class="text-center">
+                        <div class="text-gray-400 text-[10px]">STREAK</div>
+                        <div id="headerStreak" class="font-arcade text-amber-400 text-xs">0 🔥</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-gray-400 text-[10px]">ACCURACY</div>
+                        <div id="headerAccuracy" class="font-bold text-emerald-400 text-xs">100%</div>
+                    </div>
+                </div>
+
+                <button onclick="logoutAccount()" class="ml-2 text-xs bg-darkbg-card hover:bg-blood-900 text-blood-400 hover:text-white px-2.5 py-1.5 rounded-lg border border-blood-800 transition flex items-center gap-1" title="Logout">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+
+            <!-- Global Controls (Audio Synth Toggle & Auth Button) -->
+            <div class="flex items-center gap-2">
+                <button id="soundToggleBtn" onclick="toggleAudio()" class="p-2 bg-darkbg-card hover:bg-blood-900 text-gray-300 rounded-lg border border-blood-900 transition flex items-center gap-1 text-xs" title="Toggle Sound Synth">
+                    <i class="fa-solid fa-volume-high text-amber-400" id="soundIcon"></i>
+                    <span class="hidden md:inline font-bold">SFX</span>
+                </button>
+                <button id="authTriggerBtn" onclick="openAuthModal()" class="bg-blood-600 hover:bg-blood-500 text-white px-3 py-1.5 rounded-lg font-bold text-xs uppercase tracking-wider border border-blood-400 blood-glow transition">
+                    <i class="fa-solid fa-user-shield mr-1"></i> Account
+                </button>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-7xl mx-auto w-full px-4 py-6 flex-1 flex flex-col justify-center">
+
+        <!-- NAV TABS -->
+        <nav class="flex flex-wrap justify-center gap-2 mb-6" id="mainTabNav">
+            <button id="tabBtn-dashboard" onclick="switchTab('dashboard')" class="tab-btn active bg-blood-600 text-white px-4 py-2 rounded-xl font-bold text-xs md:text-sm border border-blood-400 blood-glow transition flex items-center gap-2">
+                <i class="fa-solid fa-gamepad"></i> Slayer Arena
+            </button>
+            <button id="tabBtn-deck" onclick="openDeckModal()" class="tab-btn bg-darkbg-card hover:bg-blood-900 text-gray-300 px-4 py-2 rounded-xl font-bold text-xs md:text-sm border border-blood-900 transition flex items-center gap-2">
+                <i class="fa-solid fa-layer-group"></i> Study Deck
+            </button>
+            <button id="tabBtn-logs" onclick="switchTab('logs')" class="tab-btn bg-darkbg-card hover:bg-blood-900 text-gray-300 px-4 py-2 rounded-xl font-bold text-xs md:text-sm border border-blood-900 transition flex items-center gap-2">
+                <i class="fa-solid fa-scroll"></i> Battle Logs
+            </button>
+            <button id="tabBtn-leaderboard" onclick="switchTab('leaderboard')" class="tab-btn bg-darkbg-card hover:bg-blood-900 text-gray-300 px-4 py-2 rounded-xl font-bold text-xs md:text-sm border border-blood-900 transition flex items-center gap-2">
+                <i class="fa-solid fa-trophy"></i> High Scores
+            </button>
+        </nav>
+
+        <!-- VIEW 1: DASHBOARD / ARENA SELECTION -->
+        <section id="view-dashboard" class="view-content space-y-6">
+            <!-- Guest Notice Banner if in guest mode -->
+            <div id="guestBanner" class="hidden bg-gradient-to-r from-amber-900/40 via-blood-900/40 to-amber-900/40 border border-amber-600/50 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left shadow-lg">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-400 text-2xl"></i>
+                    <div>
+                        <h4 class="font-bold text-amber-300 text-sm">GUEST ACCOUNT MODE</h4>
+                        <p class="text-xs text-gray-300">Your XP, level, and logs are temporary. Create or convert to a smart account to keep your master profile forever!</p>
+                    </div>
+                </div>
+                <button onclick="openAuthModal('register')" class="bg-amber-500 hover:bg-amber-400 text-black px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider whitespace-nowrap shadow transition">
+                    Convert to Account
+                </button>
+            </div>
+
+            <!-- Welcome Banner & Quick Start Hero -->
+            <div class="relative bg-darkbg-card border border-blood-800 rounded-3xl p-6 md:p-8 overflow-hidden blood-glow">
+                <div class="absolute -right-10 -bottom-10 opacity-10 text-[180px] pointer-events-none select-none font-japanese text-blood-400">
+                    斬
+                </div>
+                <div class="relative z-10 max-w-2xl space-y-4">
+                    <span class="inline-block bg-blood-900/80 text-blood-400 border border-blood-600 text-[10px] font-arcade px-2.5 py-1 rounded-full uppercase tracking-widest">
+                        Ready For Battle
+                    </span>
+                    <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight text-white uppercase font-title">
+                        Slay Japanese Characters <span class="text-blood-400">With Blood Honor</span>
+                    </h2>
+                    <p class="text-sm md:text-base text-gray-300 leading-relaxed">
+                        Master Hiragana, Katakana, JLPT Kanji, and Battle Vocabulary. Build your streak, level up to Level 100 <span class="text-amber-400 font-bold">Kami Slayer</span>, and record every battle error for precise review.
+                    </p>
+                    
+                    <div class="flex flex-wrap gap-4 pt-2">
+                        <button onclick="startArcadeQuiz()" class="bg-gradient-to-r from-blood-600 via-blood-500 to-blood-700 hover:from-blood-500 hover:to-blood-600 text-white font-arcade text-xs md:text-sm px-6 py-4 rounded-2xl shadow-xl border border-blood-400 blood-glow-lg transition transform hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-3">
+                            <i class="fa-solid fa-play text-amber-400"></i> START BATTLE ARENA
+                        </button>
+                        <button onclick="openDeckModal()" class="bg-darkbg-base hover:bg-blood-900 text-gray-200 font-bold text-xs md:text-sm px-5 py-4 rounded-2xl border border-blood-800 transition flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-blood-400"></i> Customize Deck (<span id="selectedDeckCount">0</span> Selected)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Selector Grid -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-200 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-crosshairs text-blood-400"></i> SELECT STUDY REALM
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="categoryGrid">
+                    <!-- Dynamic Categories inserted via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 2: ARCADE QUIZ ARENA (ACTIVE BATTLE) -->
+        <section id="view-quiz" class="view-content hidden max-w-3xl mx-auto w-full space-y-4">
+            
+            <!-- Blood Slash Visual FX Element -->
+            <div id="bloodSlashOverlay" class="blood-slash"></div>
+
+            <!-- Quiz Arena Card -->
+            <div id="quizArenaCard" class="relative bg-darkbg-card border-2 border-blood-600 rounded-3xl p-6 md:p-8 shadow-2xl blood-glow overflow-hidden">
+                
+                <!-- Floating XP Container -->
+                <div id="xpFloatContainer" class="absolute inset-0 pointer-events-none"></div>
+
+                <!-- Arena Header: Combo Multiplier & Timer Bar -->
+                <div class="flex justify-between items-center pb-4 border-b border-blood-900">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-400 uppercase font-bold">PROGRESS:</span>
+                        <span id="quizProgressText" class="font-arcade text-xs text-amber-400">1 / 10</span>
+                    </div>
+                    
+                    <!-- Multiplier Badge -->
+                    <div id="quizComboBadge" class="bg-blood-900 border border-blood-600 text-blood-400 font-arcade text-xs px-3 py-1 rounded-xl flex items-center gap-1 shadow">
+                        <i class="fa-solid fa-fire text-amber-400"></i> 1x COMBO
+                    </div>
+
+                    <button onclick="exitQuiz()" class="text-xs text-gray-400 hover:text-blood-400 px-2 py-1 rounded border border-transparent hover:border-blood-800 transition">
+                        <i class="fa-solid fa-xmark text-base"></i>
+                    </button>
+                </div>
+
+                <!-- Timer Bar -->
+                <div class="w-full bg-gray-900 h-2 rounded-full overflow-hidden mt-3 border border-blood-900">
+                    <div id="quizTimerBar" class="bg-gradient-to-r from-emerald-500 via-amber-400 to-blood-500 h-full w-full transition-all duration-100"></div>
+                </div>
+
+                <!-- Main Target Character Display -->
+                <div class="py-10 text-center relative">
+                    <div class="text-xs text-blood-400 font-arcade tracking-widest uppercase mb-2" id="quizCategoryLabel">
+                        HIRAGANA BASIC
+                    </div>
+                    
+                    <!-- Large Character -->
+                    <div id="quizCharDisplay" class="font-japanese text-7xl md:text-9xl font-black text-white drop-shadow-[0_0_20px_rgba(255,0,60,0.6)] my-2 transition transform scale-100">
+                        あ
+                    </div>
+
+                    <!-- Pronunciation Audio Button -->
+                    <button onclick="playCurrentCharTTS()" class="mt-3 inline-flex items-center gap-2 bg-blood-900/60 hover:bg-blood-800 text-amber-300 border border-blood-600 px-4 py-1.5 rounded-full text-xs font-bold transition shadow">
+                        <i class="fa-solid fa-volume-high"></i> PRONOUNCE (LISTEN)
+                    </button>
+                </div>
+
+                <!-- Multiple Choice Options (4 Choices) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4" id="quizOptionGrid">
+                    <!-- 4 buttons inserted via JS -->
+                </div>
+
+                <!-- Hotkey Tip -->
+                <p class="text-center text-[11px] text-gray-500 mt-4 tracking-wider">
+                    TIP: Use Keyboard Keys <span class="text-amber-400 font-bold">[1] [2] [3] [4]</span> for fast arcade slays!
+                </p>
+            </div>
+        </section>
+
+        <!-- VIEW 3: SESSION RESULTS SUMMARY -->
+        <section id="view-results" class="view-content hidden max-w-2xl mx-auto w-full space-y-6">
+            <div class="bg-darkbg-card border-2 border-blood-600 rounded-3xl p-6 md:p-8 text-center space-y-6 blood-glow">
+                
+                <div class="space-y-1">
+                    <span class="text-xs font-arcade text-amber-400 tracking-widest uppercase">BATTLE CONCLUDED</span>
+                    <h2 class="text-3xl font-extrabold text-white font-title uppercase">Session Mastery Analysis</h2>
+                </div>
+
+                <!-- Rank Grade Badge -->
+                <div class="relative inline-block my-4">
+                    <div id="resGradeCircle" class="w-28 h-28 mx-auto rounded-full bg-blood-900 border-4 border-blood-400 flex flex-col items-center justify-center blood-glow-lg">
+                        <span id="resGradeText" class="font-arcade text-4xl font-black text-amber-400">S</span>
+                        <span class="text-[9px] font-bold text-gray-300 uppercase">RANK</span>
+                    </div>
+                </div>
+
+                <!-- Accuracy & Metrics Grid -->
+                <div class="grid grid-cols-3 gap-3 bg-darkbg-base p-4 rounded-2xl border border-blood-900">
+                    <div>
+                        <div class="text-[10px] text-gray-400 uppercase font-bold">ACCURACY</div>
+                        <div id="resAccuracy" class="text-xl font-bold text-emerald-400 font-arcade">100%</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-gray-400 uppercase font-bold">XP GAINED</div>
+                        <div id="resXp" class="text-xl font-bold text-amber-400 font-arcade">+250</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-gray-400 uppercase font-bold">MAX COMBO</div>
+                        <div id="resCombo" class="text-xl font-bold text-blood-400 font-arcade">10x</div>
+                    </div>
+                </div>
+
+                <!-- Session Error Breakdown List -->
+                <div class="text-left space-y-2">
+                    <h4 class="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-blood-400"></i> Missed Characters Breakdown
+                    </h4>
+                    <div id="resErrorList" class="max-h-40 overflow-y-auto space-y-1.5 p-2 bg-darkbg-base rounded-xl border border-blood-900 text-xs">
+                        <!-- Errors or 'Perfect Session' inserted via JS -->
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-wrap gap-3 justify-center pt-2">
+                    <button onclick="startArcadeQuiz()" class="bg-blood-600 hover:bg-blood-500 text-white font-arcade text-xs px-6 py-3.5 rounded-xl border border-blood-400 blood-glow transition">
+                        <i class="fa-solid fa-rotate-right mr-1"></i> REPLAY SESSION
+                    </button>
+                    <button onclick="switchTab('dashboard')" class="bg-darkbg-base hover:bg-blood-900 text-gray-200 font-bold text-xs px-5 py-3.5 rounded-xl border border-blood-800 transition">
+                        RETURN TO HUB
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- VIEW 4: BATTLE HISTORY LOGS -->
+        <section id="view-logs" class="view-content hidden space-y-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="text-xl font-bold text-white uppercase font-title tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-box-archive text-blood-400"></i> PERSISTENT BATTLE LOGS
+                    </h3>
+                    <p class="text-xs text-gray-400">Every study session, score, accuracy, and detailed missed item log stored in your account.</p>
+                </div>
+            </div>
+
+            <!-- Logs List Container -->
+            <div id="logsContainer" class="space-y-3">
+                <!-- Log cards dynamically populated -->
+            </div>
+        </section>
+
+        <!-- VIEW 5: GLOBAL LEADERBOARD -->
+        <section id="view-leaderboard" class="view-content hidden space-y-4">
+            <div class="bg-darkbg-card border border-blood-800 rounded-3xl p-6 shadow-xl blood-glow">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h3 class="text-2xl font-black text-white font-title uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-trophy text-amber-400"></i> ARCADE HIGH SCORE SLAYERS
+                        </h3>
+                        <p class="text-xs text-gray-400">Global account rankings based on total XP, Japanese Mastery level, and Good Lesson Accuracy.</p>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr class="border-b border-blood-800 text-gray-400 uppercase font-arcade text-[10px]">
+                                <th class="py-3 px-3">RANK</th>
+                                <th class="py-3 px-3">SLAYER</th>
+                                <th class="py-3 px-3">TITLE</th>
+                                <th class="py-3 px-3">LEVEL</th>
+                                <th class="py-3 px-3">TOTAL XP</th>
+                                <th class="py-3 px-3">ACCURACY</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboardTbody" class="divide-y divide-blood-900/60">
+                            <!-- Rows generated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL 1: SMART ACCOUNT AUTHENTICATION MODAL -->
+    <div id="authModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-darkbg-card border-2 border-blood-600 rounded-3xl max-w-md w-full p-6 shadow-2xl blood-glow relative space-y-5">
+            
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="text-center space-y-1">
+                <h3 class="text-2xl font-extrabold text-white font-title uppercase">SLAYER SMART ACCOUNT</h3>
+                <p class="text-xs text-gray-400">Preserve all scores, XP, level progression, and error logs.</p>
+            </div>
+
+            <!-- Auth Tabs: Login vs Register -->
+            <div class="flex border-b border-blood-900 text-xs font-bold">
+                <button id="authTabBtn-login" onclick="switchAuthTab('login')" class="flex-1 py-2 text-center text-blood-400 border-b-2 border-blood-400 transition">
+                    LOGIN
+                </button>
+                <button id="authTabBtn-register" onclick="switchAuthTab('register')" class="flex-1 py-2 text-center text-gray-500 hover:text-gray-300 transition">
+                    REGISTER PERMANENT
+                </button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" onsubmit="handleLoginSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Username</label>
+                    <input type="text" id="loginUsername" required class="w-full bg-darkbg-base border border-blood-900 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blood-400">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Password</label>
+                    <input type="password" id="loginPassword" required class="w-full bg-darkbg-base border border-blood-900 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blood-400">
+                </div>
+                <button type="submit" class="w-full bg-blood-600 hover:bg-blood-500 text-white font-arcade text-xs py-3 rounded-xl border border-blood-400 blood-glow transition">
+                    AUTHENTICATE & LOAD SAVES
+                </button>
+            </form>
+
+            <!-- Register Form -->
+            <form id="registerForm" onsubmit="handleRegisterSubmit(event)" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Choose Slayer Name</label>
+                    <input type="text" id="regUsername" required class="w-full bg-darkbg-base border border-blood-900 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blood-400">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Passcode</label>
+                    <input type="password" id="regPassword" required class="w-full bg-darkbg-base border border-blood-900 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blood-400">
+                </div>
+                <!-- Avatar Picker -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-300 uppercase mb-2">Select Slayer Class Avatar</label>
+                    <div class="grid grid-cols-6 gap-2" id="avatarPickerGrid">
+                        <!-- Avatars populated via JS -->
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-arcade text-xs py-3 rounded-xl border border-emerald-400 emerald-glow transition">
+                    CREATE PERMANENT ACCOUNT
+                </button>
+            </form>
+
+            <div class="pt-2 border-t border-blood-900 text-center">
+                <button onclick="startGuestSession()" class="text-xs text-amber-400 hover:underline">
+                    Continue as Guest (Temporary Play Mode)
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL 2: ITEM SELECTION / STUDY DECK MODAL -->
+    <div id="deckModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-darkbg-card border-2 border-blood-600 rounded-3xl max-w-3xl w-full p-6 shadow-2xl blood-glow relative flex flex-col max-h-[85vh]">
+            
+            <button onclick="closeDeckModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="mb-4">
+                <h3 class="text-2xl font-extrabold text-white font-title uppercase">DECK ITEM CUSTOMIZER</h3>
+                <p class="text-xs text-gray-400">Filter and manually pick exact characters or vocabulary items for your battle session.</p>
+            </div>
+
+            <!-- Filter Pills & Search -->
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-4 pb-3 border-b border-blood-900">
+                <div class="flex flex-wrap gap-1.5" id="deckFilterPills">
+                    <!-- Filter pills (All, Hiragana, Katakana, N5, Vocab) -->
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <button onclick="selectAllDeckItems(true)" class="text-[11px] bg-blood-900/60 hover:bg-blood-800 text-blood-300 px-2.5 py-1 rounded-lg border border-blood-800 transition">
+                        Select All
+                    </button>
+                    <button onclick="selectAllDeckItems(false)" class="text-[11px] bg-darkbg-base hover:bg-blood-900 text-gray-400 px-2.5 py-1 rounded-lg border border-blood-900 transition">
+                        Deselect All
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search input -->
+            <div class="mb-3">
+                <input type="text" id="deckSearchInput" oninput="renderDeckGrid()" placeholder="Search character, reading, or meaning..." class="w-full bg-darkbg-base border border-blood-900 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blood-400">
+            </div>
+
+            <!-- Items Checkbox Grid -->
+            <div class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 pr-1" id="deckItemGrid">
+                <!-- Checkbox cards inserted via JS -->
+            </div>
+
+            <div class="pt-4 border-t border-blood-900 flex justify-between items-center mt-3">
+                <span class="text-xs text-amber-400 font-bold" id="deckSelectionCounter">
+                    0 Items Selected
+                </span>
+                <button onclick="closeDeckModal()" class="bg-blood-600 hover:bg-blood-500 text-white font-arcade text-xs px-5 py-2.5 rounded-xl border border-blood-400 blood-glow transition">
+                    CONFIRM SELECTION
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL 3: INSPECT DETAILED SESSION ERROR LOG -->
+    <div id="logInspectModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-darkbg-card border-2 border-blood-600 rounded-3xl max-w-xl w-full p-6 shadow-2xl blood-glow relative space-y-4 max-h-[85vh] flex flex-col">
+            
+            <button onclick="closeLogInspectModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div>
+                <h3 id="inspectLogTitle" class="text-xl font-bold text-white uppercase font-title">Session Battle Log</h3>
+                <p id="inspectLogSubtitle" class="text-xs text-gray-400"></p>
+            </div>
+
+            <div class="flex-1 overflow-y-auto space-y-2 pr-1" id="inspectLogBody">
+                <!-- Detailed log items inserted via JS -->
+            </div>
+
+            <div class="pt-3 border-t border-blood-900 text-right">
+                <button onclick="closeLogInspectModal()" class="bg-darkbg-base hover:bg-blood-900 text-gray-300 font-bold text-xs px-4 py-2 rounded-xl border border-blood-800 transition">
+                    CLOSE
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-blood-900 bg-darkbg-base py-4 text-center text-xs text-gray-500">
+        <p>NIHONGO SLAYER: ARCADE BLOOD EDITION &copy; 2026. All Progress & History Auto-Saved to Smart Account.</p>
+    </footer>
+
+    <!-- Firebase SDK Modules -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Global Setup
+        window.appId = typeof __app_id !== 'undefined' ? __app_id : 'nihongo-slayer-arcade';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+
+        window.db = null;
+        window.auth = null;
+
+        if (firebaseConfig) {
+            try {
+                const fbApp = initializeApp(firebaseConfig);
+                window.auth = getAuth(fbApp);
+                window.db = getFirestore(fbApp);
+
+                // Auth Rule 3: Auth Before Queries
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(window.auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(window.auth);
+                }
+                console.log("Firebase Auth & Firestore Initialized Successfully!");
+            } catch (err) {
+                console.warn("Firebase Auth fallback mode activated:", err);
+            }
+        }
+    </script>
+
+    <script>
+
+        // Web Audio Synthesizer
+        let audioCtx = null;
+        let soundEnabled = true;
+
+        function initAudioCtx() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function toggleAudio() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('soundIcon');
+            if (soundEnabled) {
+                icon.className = 'fa-solid fa-volume-high text-amber-400';
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-gray-500';
+            }
+        }
+
+        function playButtonClickSFX() {
+            if (!soundEnabled) return;
+            initAudioCtx();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.05);
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.05);
+        }
+
+        function playCorrectSFX() {
+            if (!soundEnabled) return;
+            initAudioCtx();
+            const notes = [523.25, 659.25, 783.99, 1046.50]; // C Major arpeggio
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime + idx * 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + idx * 0.05 + 0.2);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(audioCtx.currentTime + idx * 0.05);
+                osc.stop(audioCtx.currentTime + idx * 0.05 + 0.2);
+            });
+        }
+
+        function playSlashSFX() {
+            if (!soundEnabled) return;
+            initAudioCtx();
+            // Noise buffer for slash impact sound
+            const bufferSize = audioCtx.sampleRate * 0.2;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(1200, audioCtx.currentTime);
+            filter.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            noise.start();
+        }
+
+        function playLevelUpSFX() {
+            if (!soundEnabled) return;
+            initAudioCtx();
+            const notes = [440, 554.37, 659.25, 880, 1108.73];
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime + idx * 0.08);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + idx * 0.08 + 0.3);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(audioCtx.currentTime + idx * 0.08);
+                osc.stop(audioCtx.currentTime + idx * 0.08 + 0.3);
+            });
+        }
+
+        // Japanese Speech Synthesis (TTS)
+        function speakJapanese(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ja-JP';
+                utterance.rate = 0.9;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        const JAPANESE_DATABASE = [
+            // HIRAGANA BASIC
+            { id: 'h1', char: 'あ', romaji: 'a', meaning: 'a', category: 'hiragana_basic' },
+            { id: 'h2', char: 'い', romaji: 'i', meaning: 'i', category: 'hiragana_basic' },
+            { id: 'h3', char: 'う', romaji: 'u', meaning: 'u', category: 'hiragana_basic' },
+            { id: 'h4', char: 'え', romaji: 'e', meaning: 'e', category: 'hiragana_basic' },
+            { id: 'h5', char: 'お', romaji: 'o', meaning: 'o', category: 'hiragana_basic' },
+            { id: 'h6', char: 'か', romaji: 'ka', meaning: 'ka', category: 'hiragana_basic' },
+            { id: 'h7', char: 'き', romaji: 'ki', meaning: 'ki', category: 'hiragana_basic' },
+            { id: 'h8', char: 'く', romaji: 'ku', meaning: 'ku', category: 'hiragana_basic' },
+            { id: 'h9', char: 'け', romaji: 'ke', meaning: 'ke', category: 'hiragana_basic' },
+            { id: 'h10', char: 'こ', romaji: 'ko', meaning: 'ko', category: 'hiragana_basic' },
+            { id: 'h11', char: 'さ', romaji: 'sa', meaning: 'sa', category: 'hiragana_basic' },
+            { id: 'h12', char: 'し', romaji: 'shi', meaning: 'shi', category: 'hiragana_basic' },
+            { id: 'h13', char: 'す', romaji: 'su', meaning: 'su', category: 'hiragana_basic' },
+            { id: 'h14', char: 'せ', romaji: 'se', meaning: 'se', category: 'hiragana_basic' },
+            { id: 'h15', char: 'そ', romaji: 'so', meaning: 'so', category: 'hiragana_basic' },
+
+            // KATAKANA BASIC
+            { id: 'k1', char: 'ア', romaji: 'a', meaning: 'a', category: 'katakana_basic' },
+            { id: 'k2', char: 'イ', romaji: 'i', meaning: 'i', category: 'katakana_basic' },
+            { id: 'k3', char: 'ウ', romaji: 'u', meaning: 'u', category: 'katakana_basic' },
+            { id: 'k4', char: 'エ', romaji: 'e', meaning: 'e', category: 'katakana_basic' },
+            { id: 'k5', char: 'オ', romaji: 'o', meaning: 'o', category: 'katakana_basic' },
+            { id: 'k6', char: 'カ', romaji: 'ka', meaning: 'ka', category: 'katakana_basic' },
+            { id: 'k7', char: 'キ', romaji: 'ki', meaning: 'ki', category: 'katakana_basic' },
+            { id: 'k8', char: 'ク', romaji: 'ku', meaning: 'ku', category: 'katakana_basic' },
+            { id: 'k9', char: 'ケ', romaji: 'ke', meaning: 'ke', category: 'katakana_basic' },
+            { id: 'k10', char: 'コ', romaji: 'ko', meaning: 'ko', category: 'katakana_basic' },
+
+            // KANJI N5
+            { id: 'j1', char: '日', romaji: 'hi / nichi', meaning: 'Sun / Day', category: 'kanji_n5' },
+            { id: 'j2', char: '月', romaji: 'tsuki / getsu', meaning: 'Moon / Month', category: 'kanji_n5' },
+            { id: 'j3', char: '木', romaji: 'ki / moku', meaning: 'Tree / Wood', category: 'kanji_n5' },
+            { id: 'j4', char: '水', romaji: 'mizu / sui', meaning: 'Water', category: 'kanji_n5' },
+            { id: 'j5', char: '火', romaji: 'hi / ka', meaning: 'Fire', category: 'kanji_n5' },
+            { id: 'j6', char: '人', romaji: 'hito / jin', meaning: 'Person / Human', category: 'kanji_n5' },
+            { id: 'j7', char: '山', romaji: 'yama / san', meaning: 'Mountain', category: 'kanji_n5' },
+            { id: 'j8', char: '川', romaji: 'kawa / sen', meaning: 'River', category: 'kanji_n5' },
+            { id: 'j9', char: '刀', romaji: 'katana / tou', meaning: 'Sword / Blade', category: 'kanji_n5' },
+            { id: 'j10', char: '心', romaji: 'kokoro / shin', meaning: 'Heart / Mind', category: 'kanji_n5' },
+
+            // BATTLE VOCABULARY
+            { id: 'v1', char: '侍', romaji: 'samurai', meaning: 'Warrior / Samurai', category: 'vocab' },
+            { id: 'v2', char: '忍者', romaji: 'ninja', meaning: 'Ninja / Shinobi', category: 'vocab' },
+            { id: 'v3', char: '悪魔', romaji: 'akuma', meaning: 'Demon / Devil', category: 'vocab' },
+            { id: 'v4', char: '勝利', romaji: 'shouri', meaning: 'Victory / Triumph', category: 'vocab' },
+            { id: 'v5', char: '必殺', romaji: 'hissatsu', meaning: 'Fatal Blow / Special Move', category: 'vocab' },
+            { id: 'v6', char: '血液', romaji: 'ketsueki', meaning: 'Blood', category: 'vocab' },
+            { id: 'v7', char: 'こんにちは', romaji: 'konnichiwa', meaning: 'Hello / Good Day', category: 'vocab' },
+            { id: 'v8', char: 'ありがとう', romaji: 'arigatou', meaning: 'Thank You', category: 'vocab' }
+        ];
+
+        const AVATARS = ['🥷', '👹', '⚔️', '⛩️', '👺', '🐲', '🩸', '🌸'];
+
+        let activeAccount = {
+            id: 'guest_' + Math.random().toString(36).substr(2, 6),
+            username: 'Slayer Guest',
+            isGuest: true,
+            avatar: '🥷',
+            level: 1,
+            xp: 0,
+            streak: 1,
+            totalCorrect: 0,
+            totalWrong: 0,
+            logs: []
+        };
+
+        let selectedItemIds = JAPANESE_DATABASE.map(item => item.id);
+        let activeQuizState = null;
+        let quizTimerInterval = null;
+
+        // Boss Opponents for Arcade Leaderboard
+        const BOSS_ACCOUNTS = [
+            { username: 'Demon King Orochi', avatar: '🐲', level: 100, xp: 950000, accuracy: '99%', title: 'Kami Master' },
+            { username: 'Blood Musashi', avatar: '⚔️', level: 85, xp: 620000, accuracy: '96%', title: 'Blood Blade' },
+            { username: 'Shadow Hanzo', avatar: '🥷', level: 60, xp: 380000, accuracy: '94%', title: 'Shadow Shinobi' },
+            { username: 'Oni Slayer Kenshin', avatar: '👹', level: 40, xp: 190000, accuracy: '91%', title: 'Ronin Master' }
+        ];
+
+
+        // Save account locally & sync to Firestore if online
+        async function saveActiveAccount() {
+            // Local Backup
+            localStorage.setItem('nihongo_slayer_user_' + activeAccount.id, JSON.stringify(activeAccount));
+            localStorage.setItem('nihongo_slayer_active_id', activeAccount.id);
+
+            // Firestore Cloud Persistence (Follow Rule 1: /artifacts/{appId}/public/data/leaderboard and /users/{userId}/profile)
+            if (window.db && window.auth && window.auth.currentUser) {
+                try {
+                    const userId = window.auth.currentUser.uid;
+                    const profileRef = doc(window.db, 'artifacts', window.appId, 'users', userId, 'userData', 'profile');
+                    await setDoc(profileRef, activeAccount, { merge: true });
+
+                    // Update Public Leaderboard Score
+                    const leaderRef = doc(window.db, 'artifacts', window.appId, 'public', 'data', 'leaderboard', activeAccount.id);
+                    await setDoc(leaderRef, {
+                        id: activeAccount.id,
+                        username: activeAccount.username,
+                        avatar: activeAccount.avatar,
+                        level: activeAccount.level,
+                        xp: activeAccount.xp,
+                        accuracy: calculateOverallAccuracy(activeAccount) + '%',
+                        updatedAt: Date.now()
+                    }, { merge: true });
+                } catch (e) {
+                    console.warn("Firestore sync warning:", e);
+                }
+            }
+
+            renderProfileHeader();
+        }
+
+        // Calculate Overall Accuracy Rating
+        function calculateOverallAccuracy(acc) {
+            const total = (acc.totalCorrect || 0) + (acc.totalWrong || 0);
+            if (total === 0) return 100;
+            return Math.round((acc.totalCorrect / total) * 100);
+        }
+
+        // Render Top Header Stats
+        function renderProfileHeader() {
+            document.getElementById('headerUsername').textContent = activeAccount.username;
+            document.getElementById('headerAvatar').textContent = activeAccount.avatar;
+            document.getElementById('headerLevelBadge').textContent = `LV.${activeAccount.level}`;
+            document.getElementById('headerStreak').textContent = `${activeAccount.streak} 🔥`;
+            document.getElementById('headerAccuracy').textContent = `${calculateOverallAccuracy(activeAccount)}%`;
+
+            // XP Bar Calculation (1000 XP per level cap 100)
+            const currentLevelXp = activeAccount.xp % 1000;
+            const xpPct = Math.min(100, Math.floor((currentLevelXp / 1000) * 100));
+            document.getElementById('headerXpBar').style.width = `${xpPct}%`;
+
+            document.getElementById('headerProfileBar').classList.remove('hidden');
+
+            if (activeAccount.isGuest) {
+                document.getElementById('guestBanner').classList.remove('hidden');
+            } else {
+                document.getElementById('guestBanner').classList.add('hidden');
+            }
+        }
+
+        function openAuthModal(tab = 'login') {
+            playButtonClickSFX();
+            switchAuthTab(tab);
+            renderAvatarGrid();
+            document.getElementById('authModal').classList.remove('hidden');
+        }
+
+        function closeAuthModal() {
+            document.getElementById('authModal').classList.add('hidden');
+        }
+
+        function switchAuthTab(tab) {
+            const loginBtn = document.getElementById('authTabBtn-login');
+            const regBtn = document.getElementById('authTabBtn-register');
+            const loginForm = document.getElementById('loginForm');
+            const regForm = document.getElementById('registerForm');
+
+            if (tab === 'login') {
+                loginBtn.className = 'flex-1 py-2 text-center text-blood-400 border-b-2 border-blood-400 transition';
+                regBtn.className = 'flex-1 py-2 text-center text-gray-500 hover:text-gray-300 transition';
+                loginForm.classList.remove('hidden');
+                regForm.classList.add('hidden');
+            } else {
+                regBtn.className = 'flex-1 py-2 text-center text-emerald-400 border-b-2 border-emerald-400 transition';
+                loginBtn.className = 'flex-1 py-2 text-center text-gray-500 hover:text-gray-300 transition';
+                regForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+            }
+        }
+
+        let selectedRegAvatar = '🥷';
+        function renderAvatarGrid() {
+            const grid = document.getElementById('avatarPickerGrid');
+            grid.innerHTML = AVATARS.map(av => `
+                <button type="button" onclick="selectAvatar('${av}')" class="text-2xl p-2 rounded-xl bg-darkbg-base border ${selectedRegAvatar === av ? 'border-amber-400 bg-blood-900' : 'border-blood-900'} hover:border-blood-400 transition">
+                    ${av}
+                </button>
+            `).join('');
+        }
+
+        function selectAvatar(av) {
+            selectedRegAvatar = av;
+            renderAvatarGrid();
+        }
+
+        function handleLoginSubmit(e) {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value.trim();
+            if (!username) return;
+
+            // Search local accounts
+            const accountKey = 'nihongo_slayer_account_' + username.toLowerCase();
+            const existingData = localStorage.getItem(accountKey);
+
+            if (existingData) {
+                activeAccount = JSON.parse(existingData);
+            } else {
+                // Create new on-the-fly permanent account
+                activeAccount = {
+                    id: 'usr_' + username.toLowerCase().replace(/\s+/g, '_'),
+                    username: username,
+                    isGuest: false,
+                    avatar: '🥷',
+                    level: 1,
+                    xp: 0,
+                    streak: 1,
+                    totalCorrect: 0,
+                    totalWrong: 0,
+                    logs: []
+                };
+                localStorage.setItem(accountKey, JSON.stringify(activeAccount));
+            }
+
+            saveActiveAccount();
+            closeAuthModal();
+            playLevelUpSFX();
+        }
+
+        function handleRegisterSubmit(e) {
+            e.preventDefault();
+            const username = document.getElementById('regUsername').value.trim();
+            if (!username) return;
+
+            const accountKey = 'nihongo_slayer_account_' + username.toLowerCase();
+            
+            // Convert current guest or create permanent
+            activeAccount = {
+                id: 'usr_' + username.toLowerCase().replace(/\s+/g, '_'),
+                username: username,
+                isGuest: false,
+                avatar: selectedRegAvatar,
+                level: activeAccount.level || 1,
+                xp: activeAccount.xp || 0,
+                streak: activeAccount.streak || 1,
+                totalCorrect: activeAccount.totalCorrect || 0,
+                totalWrong: activeAccount.totalWrong || 0,
+                logs: activeAccount.logs || []
+            };
+
+            localStorage.setItem(accountKey, JSON.stringify(activeAccount));
+            saveActiveAccount();
+            closeAuthModal();
+            playLevelUpSFX();
+        }
+
+        function startGuestSession() {
+            closeAuthModal();
+        }
+
+        function logoutAccount() {
+            activeAccount = {
+                id: 'guest_' + Math.random().toString(36).substr(2, 6),
+                username: 'Slayer Guest',
+                isGuest: true,
+                avatar: '🥷',
+                level: 1,
+                xp: 0,
+                streak: 1,
+                totalCorrect: 0,
+                totalWrong: 0,
+                logs: []
+            };
+            saveActiveAccount();
+        }
+
+        function switchTab(tabId) {
+            playButtonClickSFX();
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = 'tab-btn bg-darkbg-card hover:bg-blood-900 text-gray-300 px-4 py-2 rounded-xl font-bold text-xs md:text-sm border border-blood-900 transition flex items-center gap-2';
+            });
+            const activeBtn = document.getElementById(`tabBtn-${tabId}`);
+            if (activeBtn) {
+                activeBtn.className = 'tab-btn active bg-blood-600 text-white px-4 py-2 rounded-xl font-bold text-xs md:text-sm border border-blood-400 blood-glow transition flex items-center gap-2';
+            }
+
+            document.querySelectorAll('.view-content').forEach(view => view.classList.add('hidden'));
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+
+            if (tabId === 'logs') renderBattleLogs();
+            if (tabId === 'leaderboard') renderLeaderboard();
+        }
+
+        // Category Cards Grid Generator
+        function renderCategories() {
+            const categories = [
+                { id: 'hiragana_basic', title: 'Hiragana Basic', count: 15, desc: 'Fundamental vowels and consonants (あ - こ)', icon: 'あ' },
+                { id: 'katakana_basic', title: 'Katakana Basic', count: 10, desc: 'Loanword basic syllabus (ア - コ)', icon: 'ア' },
+                { id: 'kanji_n5', title: 'JLPT N5 Kanji', count: 10, desc: 'Essential elements, days, nature (日, 月, 火)', icon: '日' },
+                { id: 'vocab', title: 'Battle Vocabulary', count: 8, desc: 'Samurai, Ninja, Victory, Blood terms', icon: '⚔️' }
+            ];
+
+            const grid = document.getElementById('categoryGrid');
+            grid.innerHTML = categories.map(cat => `
+                <div class="bg-darkbg-card border border-blood-900 hover:border-blood-500 rounded-2xl p-5 cursor-pointer transition transform hover:-translate-y-1 blood-glow flex flex-col justify-between" onclick="selectCategoryDeck('${cat.id}')">
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="text-3xl font-japanese text-amber-400 font-bold bg-blood-900/60 w-12 h-12 rounded-xl border border-blood-800 flex items-center justify-center">
+                            ${cat.icon}
+                        </span>
+                        <span class="text-[10px] font-arcade bg-blood-900 text-blood-400 px-2 py-1 rounded border border-blood-800">
+                            ${cat.count} ITEMS
+                        </span>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-white text-base font-title uppercase mb-1">${cat.title}</h4>
+                        <p class="text-xs text-gray-400 leading-relaxed">${cat.desc}</p>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('selectedDeckCount').textContent = selectedItemIds.length;
+        }
+
+        function selectCategoryDeck(catId) {
+            selectedItemIds = JAPANESE_DATABASE.filter(item => item.category === catId).map(item => item.id);
+            document.getElementById('selectedDeckCount').textContent = selectedItemIds.length;
+            startArcadeQuiz();
+        }
+
+        let activeDeckFilter = 'all';
+
+        function openDeckModal() {
+            playButtonClickSFX();
+            renderDeckFilters();
+            renderDeckGrid();
+            document.getElementById('deckModal').classList.remove('hidden');
+        }
+
+        function closeDeckModal() {
+            document.getElementById('deckModal').classList.add('hidden');
+            document.getElementById('selectedDeckCount').textContent = selectedItemIds.length;
+        }
+
+        function renderDeckFilters() {
+            const filters = [
+                { id: 'all', label: 'All Items' },
+                { id: 'hiragana_basic', label: 'Hiragana' },
+                { id: 'katakana_basic', label: 'Katakana' },
+                { id: 'kanji_n5', label: 'JLPT N5 Kanji' },
+                { id: 'vocab', label: 'Vocabulary' }
+            ];
+            const pills = document.getElementById('deckFilterPills');
+            pills.innerHTML = filters.map(f => `
+                <button onclick="setDeckFilter('${f.id}')" class="text-[11px] font-bold px-3 py-1 rounded-lg border ${activeDeckFilter === f.id ? 'bg-blood-600 text-white border-blood-400' : 'bg-darkbg-base text-gray-400 border-blood-900'} transition">
+                    ${f.label}
+                </button>
+            `).join('');
+        }
+
+        function setDeckFilter(filter) {
+            activeDeckFilter = filter;
+            renderDeckFilters();
+            renderDeckGrid();
+        }
+
+        function renderDeckGrid() {
+            const search = document.getElementById('deckSearchInput').value.toLowerCase();
+            const grid = document.getElementById('deckItemGrid');
+
+            const filtered = JAPANESE_DATABASE.filter(item => {
+                const matchesFilter = activeDeckFilter === 'all' || item.category === activeDeckFilter;
+                const matchesSearch = item.char.includes(search) || item.romaji.toLowerCase().includes(search) || item.meaning.toLowerCase().includes(search);
+                return matchesFilter && matchesSearch;
+            });
+
+            grid.innerHTML = filtered.map(item => {
+                const isSelected = selectedItemIds.includes(item.id);
+                return `
+                    <label class="flex items-center gap-2 p-2.5 rounded-xl border ${isSelected ? 'bg-blood-900/40 border-blood-600' : 'bg-darkbg-base border-blood-900'} cursor-pointer hover:border-blood-500 transition">
+                        <input type="checkbox" onchange="toggleDeckItem('${item.id}')" ${isSelected ? 'checked' : ''} class="rounded text-blood-500 focus:ring-0 bg-darkbg-base border-blood-800">
+                        <span class="text-xl font-japanese font-bold text-amber-400">${item.char}</span>
+                        <div class="text-[11px] overflow-hidden">
+                            <div class="font-bold text-gray-200 truncate">${item.romaji}</div>
+                            <div class="text-gray-400 text-[10px] truncate">${item.meaning}</div>
+                        </div>
+                    </label>
+                `;
+            }).join('');
+
+            document.getElementById('deckSelectionCounter').textContent = `${selectedItemIds.length} Items Selected`;
+        }
+
+        function toggleDeckItem(id) {
+            if (selectedItemIds.includes(id)) {
+                selectedItemIds = selectedItemIds.filter(i => i !== id);
+            } else {
+                selectedItemIds.push(id);
+            }
+            renderDeckGrid();
+        }
+
+        function selectAllDeckItems(select) {
+            if (select) {
+                selectedItemIds = JAPANESE_DATABASE.map(i => i.id);
+            } else {
+                selectedItemIds = [];
+            }
+            renderDeckGrid();
+        }
+
+        function startArcadeQuiz() {
+            if (selectedItemIds.length === 0) {
+                openDeckModal();
+                return;
+            }
+
+            playButtonClickSFX();
+
+            // Prepare session items queue
+            const items = JAPANESE_DATABASE.filter(i => selectedItemIds.includes(i.id));
+            const shuffled = [...items].sort(() => Math.random() - 0.5);
+
+            activeQuizState = {
+                queue: shuffled,
+                currentIndex: 0,
+                totalCount: shuffled.length,
+                correctCount: 0,
+                wrongCount: 0,
+                combo: 0,
+                maxCombo: 0,
+                xpGained: 0,
+                errorLogs: [], // Record missed character logs
+                startTime: Date.now()
+            };
+
+            switchTab('quiz');
+            loadNextQuizQuestion();
+        }
+
+        function loadNextQuizQuestion() {
+            if (activeQuizState.currentIndex >= activeQuizState.totalCount) {
+                finishQuizSession();
+                return;
+            }
+
+            const current = activeQuizState.queue[activeQuizState.currentIndex];
+
+            // Progress text
+            document.getElementById('quizProgressText').textContent = `${activeQuizState.currentIndex + 1} / ${activeQuizState.totalCount}`;
+
+            // Category Label
+            document.getElementById('quizCategoryLabel').textContent = current.category.replace('_', ' ').toUpperCase();
+
+            // Character Display
+            document.getElementById('quizCharDisplay').textContent = current.char;
+
+            // Auto-speak TTS
+            speakJapanese(current.char);
+
+            // Generate 4 Options (1 correct, 3 distractors)
+            const distractors = JAPANESE_DATABASE.filter(i => i.id !== current.id).sort(() => Math.random() - 0.5).slice(0, 3);
+            const options = [current, ...distractors].sort(() => Math.random() - 0.5);
+
+            const grid = document.getElementById('quizOptionGrid');
+            grid.innerHTML = options.map((opt, idx) => `
+                <button onclick="handleOptionChoice('${opt.id}', '${current.id}')" class="option-btn bg-darkbg-base hover:bg-blood-900 border-2 border-blood-900 hover:border-blood-500 text-left p-4 rounded-2xl transition transform hover:-translate-y-0.5 flex items-center justify-between group">
+                    <div class="flex items-center gap-3">
+                        <span class="font-arcade text-xs text-blood-400 bg-blood-900/60 w-7 h-7 rounded-lg border border-blood-800 flex items-center justify-center">
+                            ${idx + 1}
+                        </span>
+                        <div>
+                            <div class="text-sm font-bold text-gray-100 group-hover:text-amber-300 font-title">${opt.romaji}</div>
+                            <div class="text-xs text-gray-400">${opt.meaning}</div>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-gray-600 group-hover:text-blood-400 transition"></i>
+                </button>
+            `).join('');
+
+            // Reset Timer Bar animation
+            resetTimerBar();
+        }
+
+        function playCurrentCharTTS() {
+            if (activeQuizState) {
+                const current = activeQuizState.queue[activeQuizState.currentIndex];
+                speakJapanese(current.char);
+            }
+        }
+
+        function resetTimerBar() {
+            clearInterval(quizTimerInterval);
+            const bar = document.getElementById('quizTimerBar');
+            bar.style.width = '100%';
+
+            let startTime = Date.now();
+            const timeLimit = 8000; // 8 seconds per question
+
+            quizTimerInterval = setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                const remainingPct = Math.max(0, 100 - (elapsed / timeLimit) * 100);
+                bar.style.width = `${remainingPct}%`;
+
+                if (remainingPct <= 0) {
+                    clearInterval(quizTimerInterval);
+                    // Timeout counted as wrong
+                    const current = activeQuizState.queue[activeQuizState.currentIndex];
+                    handleOptionChoice('TIMEOUT', current.id);
+                }
+            }, 100);
+        }
+
+        function handleOptionChoice(chosenId, correctId) {
+            clearInterval(quizTimerInterval);
+            const currentItem = activeQuizState.queue[activeQuizState.currentIndex];
+
+            if (chosenId === correctId) {
+                // Correct Answer!
+                playCorrectSFX();
+                activeQuizState.correctCount++;
+                activeQuizState.combo++;
+                if (activeQuizState.combo > activeQuizState.maxCombo) {
+                    activeQuizState.maxCombo = activeQuizState.combo;
+                }
+
+                // Combo multiplier calculation
+                const multiplier = Math.min(5, 1 + Math.floor(activeQuizState.combo / 3));
+                const xpGain = 50 * multiplier;
+                activeQuizState.xpGained += xpGain;
+
+                showFloatingXP(`+${xpGain} XP!`, multiplier > 1 ? `${multiplier}x COMBO!` : 'CRITICAL!');
+            } else {
+                // Wrong Answer!
+                playSlashSFX();
+                triggerScreenShake();
+                triggerBloodSlash();
+
+                activeQuizState.wrongCount++;
+                activeQuizState.combo = 0;
+
+                // Find chosen item details for error log
+                const chosenItem = JAPANESE_DATABASE.find(i => i.id === chosenId);
+                const chosenText = chosenItem ? `${chosenItem.romaji} (${chosenItem.meaning})` : 'Time Expired';
+
+                activeQuizState.errorLogs.push({
+                    char: currentItem.char,
+                    romaji: currentItem.romaji,
+                    meaning: currentItem.meaning,
+                    userMistake: chosenText
+                });
+            }
+
+            // Update Combo Badge UI
+            const comboBadge = document.getElementById('quizComboBadge');
+            comboBadge.innerHTML = `<i class="fa-solid fa-fire text-amber-400"></i> ${activeQuizState.combo}x COMBO`;
+
+            activeQuizState.currentIndex++;
+            setTimeout(loadNextQuizQuestion, 350);
+        }
+
+        function showFloatingXP(text, subtext = '') {
+            const container = document.getElementById('xpFloatContainer');
+            const el = document.createElement('div');
+            el.className = 'floating-xp text-center';
+            el.style.left = `${30 + Math.random() * 40}%`;
+            el.style.top = '40%';
+            el.innerHTML = `<div>${text}</div><div class="text-xs text-amber-300 font-bold">${subtext}</div>`;
+            container.appendChild(el);
+            setTimeout(() => el.remove(), 800);
+        }
+
+        function triggerScreenShake() {
+            const card = document.getElementById('quizArenaCard');
+            card.classList.add('shake-screen');
+            setTimeout(() => card.classList.remove('shake-screen'), 300);
+        }
+
+        function triggerBloodSlash() {
+            const slash = document.getElementById('bloodSlashOverlay');
+            slash.classList.add('active');
+            setTimeout(() => slash.classList.remove('active'), 350);
+        }
+
+        function exitQuiz() {
+            clearInterval(quizTimerInterval);
+            switchTab('dashboard');
+        }
+
+        function finishQuizSession() {
+            clearInterval(quizTimerInterval);
+
+            // Update Active User State
+            activeAccount.xp += activeQuizState.xpGained;
+            activeAccount.totalCorrect += activeQuizState.correctCount;
+            activeAccount.totalWrong += activeQuizState.wrongCount;
+
+            // Level up logic: Level 1-100 (1000 XP per level)
+            const newLevel = Math.min(100, Math.floor(activeAccount.xp / 1000) + 1);
+            if (newLevel > activeAccount.level) {
+                activeAccount.level = newLevel;
+                playLevelUpSFX();
+            }
+
+            // Calculate Session Grade
+            const total = activeQuizState.totalCount;
+            const accuracyPct = Math.round((activeQuizState.correctCount / total) * 100);
+
+            let grade = 'S';
+            if (accuracyPct < 60) grade = 'F';
+            else if (accuracyPct < 75) grade = 'C';
+            else if (accuracyPct < 85) grade = 'B';
+            else if (accuracyPct < 95) grade = 'A';
+
+            // Create Log Record
+            const sessionLog = {
+                id: 'log_' + Date.now(),
+                timestamp: Date.now(),
+                totalItems: total,
+                correctCount: activeQuizState.correctCount,
+                wrongCount: activeQuizState.wrongCount,
+                accuracyPct: accuracyPct,
+                grade: grade,
+                xpGained: activeQuizState.xpGained,
+                maxCombo: activeQuizState.maxCombo,
+                errors: activeQuizState.errorLogs
+            };
+
+            activeAccount.logs.unshift(sessionLog);
+            saveActiveAccount();
+
+            // Populate Results UI
+            document.getElementById('resGradeText').textContent = grade;
+            document.getElementById('resAccuracy').textContent = `${accuracyPct}%`;
+            document.getElementById('resXp').textContent = `+${activeQuizState.xpGained}`;
+            document.getElementById('resCombo').textContent = `${activeQuizState.maxCombo}x`;
+
+            const errList = document.getElementById('resErrorList');
+            if (activeQuizState.errorLogs.length === 0) {
+                errList.innerHTML = `<div class="text-emerald-400 font-bold p-2 text-center">⚔️ PERFECT SESSION! NO SLASH MISTAKES MADE!</div>`;
+            } else {
+                errList.innerHTML = activeQuizState.errorLogs.map(err => `
+                    <div class="flex justify-between items-center p-2 rounded bg-darkbg-card border border-blood-900">
+                        <span class="text-amber-400 font-japanese font-bold text-lg">${err.char}</span>
+                        <span class="text-gray-300">${err.romaji} (${err.meaning})</span>
+                        <span class="text-blood-400 font-bold">Mistake: ${err.userMistake}</span>
+                    </div>
+                `).join('');
+            }
+
+            switchTab('results');
+        }
+
+        function renderBattleLogs() {
+            const container = document.getElementById('logsContainer');
+            if (!activeAccount.logs || activeAccount.logs.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-darkbg-card border border-blood-900 rounded-2xl p-8 text-center text-gray-400">
+                        <i class="fa-solid fa-scroll text-4xl text-blood-600 mb-3"></i>
+                        <p class="font-bold">No Battle Session History Logged Yet.</p>
+                        <p class="text-xs">Complete a study quiz in the arena to record your session accuracy and errors!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = activeAccount.logs.map(log => {
+                const dateStr = new Date(log.timestamp).toLocaleString();
+                return `
+                    <div class="bg-darkbg-card border border-blood-900 hover:border-blood-600 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 transition blood-glow">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-blood-900 border border-blood-600 flex items-center justify-center font-arcade text-xl text-amber-400 font-bold">
+                                ${log.grade}
+                            </div>
+                            <div>
+                                <div class="font-bold text-white text-sm">${dateStr}</div>
+                                <div class="text-xs text-gray-400">Accuracy: <span class="text-emerald-400 font-bold">${log.accuracyPct}%</span> | Correct: ${log.correctCount} / ${log.totalItems} | XP: +${log.xpGained}</div>
+                            </div>
+                        </div>
+                        <button onclick="inspectSessionLog('${log.id}')" class="bg-darkbg-base hover:bg-blood-900 text-blood-400 font-bold text-xs px-3.5 py-2 rounded-xl border border-blood-800 transition flex items-center gap-1">
+                            <i class="fa-solid fa-eye"></i> Inspect Missed Logs (${log.errors ? log.errors.length : 0})
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function inspectSessionLog(logId) {
+            const log = activeAccount.logs.find(l => l.id === logId);
+            if (!log) return;
+
+            document.getElementById('inspectLogTitle').textContent = `Session Log (${new Date(log.timestamp).toLocaleDateString()})`;
+            document.getElementById('inspectLogSubtitle').textContent = `Grade: ${log.grade} | Accuracy: ${log.accuracyPct}% | XP: +${log.xpGained}`;
+
+            const body = document.getElementById('inspectLogBody');
+            if (!log.errors || log.errors.length === 0) {
+                body.innerHTML = `<div class="p-4 text-center text-emerald-400 font-bold">✨ Flawless Session - 0 Mistakes Logged!</div>`;
+            } else {
+                body.innerHTML = log.errors.map((err, idx) => `
+                    <div class="bg-darkbg-base border border-blood-900 rounded-xl p-3 space-y-1 text-xs">
+                        <div class="flex justify-between items-center">
+                            <span class="font-japanese font-black text-2xl text-amber-400">${err.char}</span>
+                            <span class="text-gray-400">Correct Reading: <strong class="text-emerald-400">${err.romaji}</strong></span>
+                        </div>
+                        <div class="text-gray-300">Meaning: ${err.meaning}</div>
+                        <div class="text-blood-400 font-bold bg-blood-900/30 p-1.5 rounded border border-blood-900">
+                            User Chosen Mistake: ${err.userMistake}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            document.getElementById('logInspectModal').classList.remove('hidden');
+        }
+
+        function closeLogInspectModal() {
+            document.getElementById('logInspectModal').classList.add('hidden');
+        }
+
+        function renderLeaderboard() {
+            const tbody = document.getElementById('leaderboardTbody');
+
+            // Combine Bosses + Active Account
+            const allAccounts = [...BOSS_ACCOUNTS];
+
+            // Add Active Account if registered or played
+            allAccounts.push({
+                username: activeAccount.username + (activeAccount.isGuest ? ' (Guest)' : ' (YOU)'),
+                avatar: activeAccount.avatar,
+                level: activeAccount.level,
+                xp: activeAccount.xp,
+                accuracy: calculateOverallAccuracy(activeAccount) + '%',
+                title: activeAccount.level >= 100 ? 'Kami Master' : (activeAccount.level >= 50 ? 'Shadow Slayer' : 'Blood Blade')
+            });
+
+            // Sort by XP descending
+            allAccounts.sort((a, b) => b.xp - a.xp);
+
+            tbody.innerHTML = allAccounts.map((player, idx) => {
+                const rank = idx + 1;
+                let rankBadge = `${rank}`;
+                if (rank === 1) rankBadge = '🥇 1';
+                else if (rank === 2) rankBadge = '🥈 2';
+                else if (rank === 3) rankBadge = '🥉 3';
+
+                return `
+                    <tr class="hover:bg-blood-900/30 transition ${player.username.includes('(YOU)') ? 'bg-blood-900/50 font-bold border-l-4 border-amber-400' : ''}">
+                        <td class="py-3 px-3 font-arcade text-amber-400">${rankBadge}</td>
+                        <td class="py-3 px-3 flex items-center gap-2">
+                            <span class="text-xl">${player.avatar}</span>
+                            <span class="text-white font-bold">${player.username}</span>
+                        </td>
+                        <td class="py-3 px-3 text-blood-400 uppercase font-bold">${player.title}</td>
+                        <td class="py-3 px-3 font-arcade text-gray-200">LV.${player.level}</td>
+                        <td class="py-3 px-3 font-arcade text-amber-300">${player.xp.toLocaleString()}</td>
+                        <td class="py-3 px-3 text-emerald-400 font-bold">${player.accuracy}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (activeQuizState && !document.getElementById('view-quiz').classList.contains('hidden')) {
+                if (['1', '2', '3', '4'].includes(e.key)) {
+                    const btns = document.querySelectorAll('.option-btn');
+                    const idx = parseInt(e.key) - 1;
+                    if (btns[idx]) btns[idx].click();
+                }
+            }
+        });
+
+        // App Boot Loader
+        window.onload = function () {
+            // Load persistent saved user ID if available
+            const savedId = localStorage.getItem('nihongo_slayer_active_id');
+            if (savedId) {
+                const savedUser = localStorage.getItem('nihongo_slayer_user_' + savedId);
+                if (savedUser) {
+                    activeAccount = JSON.parse(savedUser);
+                }
+            }
+
+            renderProfileHeader();
+            renderCategories();
+            console.log("Nihongo Slayer: Arcade Blood Edition Boot Completed!");
+        };
+    </script>
+</body>
+</html>
